@@ -1,12 +1,14 @@
 package stackoverflow
 
-import org.apache.spark.{HashPartitioner, SparkConf, SparkContext}
+import org.apache.spark.SparkConf
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkContext._
 import org.apache.spark.rdd.RDD
-
 import annotation.tailrec
+import scala.reflect.ClassTag
 
 /** A raw stackoverflow posting, either a question or an answer */
-case class Posting(postingType: Int, id: Int, acceptedAnswer: Option[Int], parentId: Option[Int], score: Int, tags: Option[String]) extends Serializable
+case class Posting(postingType: Int, id: Int, acceptedAnswer: Option[Int], parentId: Option[QID], score: Int, tags: Option[String]) extends Serializable
 
 
 /** The main class */
@@ -75,17 +77,15 @@ class StackOverflow extends Serializable {
 
 
   /** Group the questions and answers together */
-  def groupedPostings(postings: RDD[Posting]): RDD[(Int, Iterable[(Posting, Posting)])] = {
-    val questions = postings.filter(_.postingType == 1).map(q => (q.id, q))
-    val answers = postings.filter(a => a.postingType == 2 && a.parentId.isDefined).map(a => (a.parentId.get, a))
-    questions.join(answers).groupByKey()
+  def groupedPostings(postings: RDD[Posting]): RDD[(QID, Iterable[(Question, Answer)])] = {
+    ???
   }
 
 
   /** Compute the maximum score for each posting */
-  def scoredPostings(grouped: RDD[(Int, Iterable[(Posting, Posting)])]): RDD[(Posting, Int)] = {
+  def scoredPostings(grouped: RDD[(QID, Iterable[(Question, Answer)])]): RDD[(Question, HighScore)] = {
 
-    def answerHighScore(as: Array[Posting]): Int = {
+    def answerHighScore(as: Array[Answer]): HighScore = {
       var highScore = 0
           var i = 0
           while (i < as.length) {
@@ -97,17 +97,12 @@ class StackOverflow extends Serializable {
       highScore
     }
 
-    grouped.map { case (qid, seqQA) =>
-      (
-        seqQA.headOption.get._1,
-        answerHighScore(seqQA.map(_._2).toArray)
-      )
-    }
+    ???
   }
 
 
   /** Compute the vectors for the kmeans */
-  def vectorPostings(scored: RDD[(Posting, Int)]): RDD[(Int, Int)] = {
+  def vectorPostings(scored: RDD[(Question, HighScore)]): RDD[(LangIndex, HighScore)] = {
     /** Return optional index of first language that occurs in `tags`. */
     def firstLangInTag(tag: Option[String], ls: List[String]): Option[Int] = {
       if (tag.isEmpty) None
@@ -122,17 +117,12 @@ class StackOverflow extends Serializable {
       }
     }
 
-    scored.map { case (posting, score) =>
-      (
-        firstLangInTag(posting.tags, langs).get * langSpread,
-        score
-      )
-    }.cache()
+    ???
   }
 
 
   /** Sample the vectors */
-  def sampleVectors(vectors: RDD[(Int, Int)]): Array[(Int, Int)] = {
+  def sampleVectors(vectors: RDD[(LangIndex, HighScore)]): Array[(Int, Int)] = {
 
     assert(kmeansKernels % langs.length == 0, "kmeansKernels should be a multiple of the number of languages studied.")
     val perLang = kmeansKernels / langs.length
@@ -177,17 +167,12 @@ class StackOverflow extends Serializable {
   //
   //
   //  Kmeans method:
-  //sbt
+  //
   //
 
   /** Main kmeans computation */
   @tailrec final def kmeans(means: Array[(Int, Int)], vectors: RDD[(Int, Int)], iter: Int = 1, debug: Boolean = false): Array[(Int, Int)] = {
-    val newMeans = means.clone().sorted // you need to compute newMeans
-
-    val closest = vectors.map(p => (findClosest(p, means), p)).groupByKey()
-    val nm = closest.map(p => averageVectors(p._2)).collect().sorted
-
-    for (i <- nm.indices) { newMeans.update(i, nm(i)) }
+    val newMeans = means.clone() // you need to compute newMeans
 
     // TODO: Fill in the newMeans array
     val distance = euclideanDistance(means, newMeans)
@@ -207,7 +192,9 @@ class StackOverflow extends Serializable {
     else if (iter < kmeansMaxIterations)
       kmeans(newMeans, vectors, iter + 1, debug)
     else {
-      println("Reached max iterations!")
+      if (debug) {
+        println("Reached max iterations!")
+      }
       newMeans
     }
   }
@@ -283,22 +270,15 @@ class StackOverflow extends Serializable {
   //  Displaying results:
   //
   //
-  def clusterResults(means: Array[(Int, Int)], vectors: RDD[(Int, Int)]): Array[(String, Double, Int, Int)] = {
+  def clusterResults(means: Array[(Int, Int)], vectors: RDD[(LangIndex, HighScore)]): Array[(String, Double, Int, Int)] = {
     val closest = vectors.map(p => (findClosest(p, means), p))
     val closestGrouped = closest.groupByKey()
 
     val median = closestGrouped.mapValues { vs =>
-      val (lanIndx, lanCount): (Int, Int) = vs.groupBy(_._1).mapValues(_.size).toList.sortBy(_._2).last
-      val sorted = vs.filter(_._1 == lanIndx).map(_._2).toList.sorted
-      val langLabel: String   = langs(lanIndx / langSpread) // most common language in the cluster
-      val langPercent: Double = lanCount * 100 / vs.size // percent of the questions in the most common language
-      val clusterSize: Int    = vs.size
-      val medianScore: Int    = {
-        if (lanCount % 2 == 0)
-          { (sorted(lanCount / 2) + sorted(lanCount / 2 - 1)) / 2}
-        else
-          {sorted(lanCount / 2 + 1)}
-      }
+      val langLabel: String   = ??? // most common language in the cluster
+      val langPercent: Double = ??? // percent of the questions in the most common language
+      val clusterSize: Int    = ???
+      val medianScore: Int    = ???
 
       (langLabel, langPercent, clusterSize, medianScore)
     }

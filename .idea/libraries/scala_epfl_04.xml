@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="scala-epfl-04">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/example.zip!/" />
+      <root url="jar://$PROJECT_DIR$/wikipedia.zip!/" />
+      <root url="jar://$PROJECT_DIR$/stackoverflow.zip!/" />
+      <root url="jar://$PROJECT_DIR$/timeusage.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

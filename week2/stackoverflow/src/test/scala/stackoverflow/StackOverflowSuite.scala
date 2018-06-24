@@ -34,26 +34,5 @@ class StackOverflowSuite extends FunSuite with BeforeAndAfterAll {
     assert(instantiatable, "Can't instantiate a StackOverflow object")
   }
 
-  test("clusterResults"){
-    val centers = Array((0,0), (100000, 0))
-    val rdd = StackOverflow.sc.parallelize(List(
-      (0, 1000),
-      (0, 23),
-      (0, 234),
-      (0, 0),
-      (0, 1),
-      (0, 1),
-      (50000, 2),
-      (50000, 10),
-      (100000, 2),
-      (100000, 5),
-      (100000, 10),
-      (200000, 100),
-      (100000, 2444),
-      (100000, 5444),
-      (100000, 10444),
-      (200000, 100444)  ))
-    testObject.printResults(testObject.clusterResults(centers, rdd))
-  }
 
 }
