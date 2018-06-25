@@ -127,10 +127,18 @@ object TimeUsage {
     otherColumns: List[Column],
     df: DataFrame
   ): DataFrame = {
+    // Transform the data from the initial dataset into data that make
+    // more sense for our use case
+    // Hint: you can use the `when` and `otherwise` Spark functions
+    // Hint: don’t forget to give your columns the expected name with the `as` method
     val workingStatusProjection: Column = ???
     val sexProjection: Column = ???
     val ageProjection: Column = ???
 
+    // Create columns that sum columns of the initial dataset
+    // Hint: you want to create a complex column expression that sums other columns
+    //       by using the `+` operator between them
+    // Hint: don’t forget to convert the value to hours
     val primaryNeedsProjection: Column = ???
     val workProjection: Column = ???
     val otherProjection: Column = ???
